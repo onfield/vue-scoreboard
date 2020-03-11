@@ -171,38 +171,40 @@ export default {
     },
     methods: {
         Refresh() {
-            var url = "http://" + location.hostname + ":8380/cgi/live-basic.cgi"
-            // Other Info = MatchID:Inning:Total:Wickets:Overs:Extras:Target/Projected:D/L:LastMan:LastWicket
-            var info = "42166:1:" + this.$store.state.match.total + ":" + this.$store.state.match.wickets + ":" + this.$store.state.match.overs + ":" +
-                this.$store.state.match.extras + ":" + this.$store.state.match.target + ":0:0:0"
+            if (this.$mqtt.connected) {
+                var status = {
+                    MatchID: 42166, 
+                    Innings : this.firstInnings ? 1 : 2, 
+                    Total: this.$store.state.match.total, 
+                    Wickets: this.$store.state.match.wickets,
+                    Overs: this.$store.state.match.overs, 
+                    Extras: this.$store.state.match.extras, 
+                    Target: this.$store.state.match.target,
+                    DLS: 0, 
+                    LastMan: 0, 
+                    LastWicket: 0
+                }
 
-            url = url + "?o=" + info
+                this.$mqtt.publish("/onfield/scoreboard", JSON.stringify(status))
+            } else {
+                var url = "http://" + location.hostname + ":8380/cgi/live-basic.cgi"
+                // Other Info = MatchID:Inning:Total:Wickets:Overs:Extras:Target/Projected:D/L:LastMan:LastWicket
+                var info = "42166:1:" + this.$store.state.match.total + ":" + this.$store.state.match.wickets + ":" + this.$store.state.match.overs + ":" +
+                    this.$store.state.match.extras + ":" + this.$store.state.match.target + ":0:0:0"
 
-            var vm = this
+                url = url + "?o=" + info
 
-            this.axios.get(url)
-                .then(response => {
-                    vm.status = "OK"
-                    vm.data = response.data
-                })
-                .catch(e => {
-                    vm.status = e.message
-                })
+                var vm = this
 
-            var status = {
-                MatchID: 42166, 
-                Innings : vm.firstInnings ? 1 : 2, 
-                Total: this.$store.state.match.total, 
-                Wickets: this.$store.state.match.wickets,
-                Overs: this.$store.state.match.overs, 
-                Extras: this.$store.state.match.extras, 
-                Target: this.$store.state.match.target,
-                DLS: 0, 
-                LastMan: 0, 
-                LastWicket: 0
+                this.axios.get(url)
+                    .then(response => {
+                        vm.status = "OK"
+                        vm.data = response.data
+                    })
+                    .catch(e => {
+                        vm.status = e.message
+                    })
             }
-
-            this.$mqtt.publish("/onfield/scoreboard", JSON.stringify(status))
         },
         Light() {
             var url = "http://" + location.hostname + ":8380/cgi/light.cgi?on=true"
