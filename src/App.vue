@@ -82,10 +82,10 @@
                 </v-flex>
 
                 <v-flex xs4>
-                    <v-subheader class="display-1">Target</v-subheader>
+                    <v-subheader class="display-1">{{targetLabel}}</v-subheader>
                 </v-flex>
                 <v-flex xs3>
-                    <v-text-field class="ma-0 pa-0" v-model="target" mask="###" label="Target" outline></v-text-field>
+                    <v-text-field class="ma-0 pa-0" v-model="target" mask="###" @label="targetLabel" outline></v-text-field>
                 </v-flex>
                 <v-flex xs5>
                     <v-btn fab dark color="green" @click="Update('Target',1)">
@@ -163,6 +163,7 @@ export default {
                 }
             ],
             maximumOvers: 20,
+            targetLabel: "Projected",
             data: null
         }
     },
@@ -173,6 +174,7 @@ export default {
         Refresh() {
             if (this.$mqtt.connected) {
                 var status = {
+                    Source: "OnFieldApplet",
                     MatchID: 42166, 
                     Innings : this.firstInnings ? 1 : 2, 
                     Total: this.$store.state.match.total, 
@@ -180,6 +182,7 @@ export default {
                     Overs: this.$store.state.match.overs, 
                     Extras: this.$store.state.match.extras, 
                     Target: this.$store.state.match.target,
+                    Projected: this.$store.state.match.target,
                     DLS: 0, 
                     LastMan: 0, 
                     LastWicket: 0
@@ -232,12 +235,12 @@ export default {
             this.$store.commit('setExtras', '0')
             this.$store.commit('setTarget', '0')
         },
-        CalculateTarget(field) {
+        CalculateProjected(field) {
             if (this.firstInnings && (field == 'Total' || field == 'Extras' || field == 'Overs')) {
                 var rate = this.total / Math.max(this.overs, 1);
-                var target = Math.ceil(this.maximumOvers * rate).toFixed(0);
+                var projected = Math.ceil(this.maximumOvers * rate).toFixed(0);
 
-                this.$store.commit('setTarget', target)
+                this.$store.commit('setTarget', projected)
 
                 return true
             }
@@ -246,19 +249,22 @@ export default {
         },
         Update(field, n) {
             this.$store.commit(field, n)
-            this.CalculateTarget(field)
+            this.CalculateProjected(field)
             this.Refresh()
         },
         changedOvers( /*value*/ ) {
-            if (this.CalculateTarget('Overs')) {
+            if (this.CalculateProjected('Overs')) {
                 this.Refresh()
             }
         },
         changedInnings(value) {
             if (value) {
+                this.targetLabel = 'Projected'
                 this.Reset()
             } else {
                 var n = this.total + 1
+
+                this.targetLabel = 'Target'
 
                 this.$store.commit('setTarget', n + '')
                 this.$store.commit('setTotal', '0')
