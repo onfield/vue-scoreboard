@@ -10,7 +10,9 @@ export default new Vuex.Store({
       wickets: 0,
       overs: 0,
       extras: 0,
-      target: 0
+      target: 0,
+      striker: 0,
+      nonstriker: 0
     }
   },
   mutations: {
@@ -77,6 +79,40 @@ export default new Vuex.Store({
       var x = parseInt(n, 10);
       if (x >= 0) {
         state.match.target = x;
+      }
+    },
+    Striker(state, n) {
+      var x = state.match.striker + n;
+      if (x >= 0 && x < 1000) {
+        state.match.striker += n;
+
+        x = state.match.total + n;
+        if (x >= 0 && x < 1000) {
+          state.match.total += n;
+        }
+      }
+    },
+    setStriker(state, n) {
+      var x = parseInt(n, 10);
+      if (x >= 0) {
+        state.match.striker = x;
+      }
+    },
+    NonStriker(state, n) {
+      var x = state.match.nonstriker + n;
+      if (x >= 0 && x < 1000) {
+        state.match.nonstriker += n;
+
+        x = state.match.total + n;
+        if (x >= 0 && x < 1000) {
+          state.match.total += n;
+        }
+      }
+    },
+    setNonStriker(state, n) {
+      var x = parseInt(n, 10);
+      if (x >= 0) {
+        state.match.nonstriker = x;
       }
     }
   },

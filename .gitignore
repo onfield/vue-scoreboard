@@ -3,6 +3,7 @@ node_modules
 /node_modules
 dist
 /dist
+pkg/
 
 # local env files
 .env.local

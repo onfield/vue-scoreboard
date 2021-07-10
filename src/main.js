@@ -10,7 +10,7 @@ Vue.config.productionTip = false
 Vue.config.devtools = true
 
 Vue.use(VueAxios, axios)
-Vue.use(VueMqtt, 'ws://' + location.hostname + ':9001', {clientId:'vue-scoreboard-' + Math.random().toString(16).substr(2, 8), username:'onfield', password:'onfield'})
+Vue.use(VueMqtt, 'ws://' + location.hostname + ':9001', {reconnectPeriod: 5000, clientId:'vue-scoreboard-' + Math.random().toString(16).substr(2, 8), username:'onfield', password:'onfield'})
 
 new Vue({
   store,
