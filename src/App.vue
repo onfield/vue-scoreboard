@@ -57,6 +57,9 @@
                     <v-btn fab dark color="indigo" @click="Update('Striker',6)">
                         6
                     </v-btn>
+                    <v-btn fab dark color="indigo" @click="Out('Striker')">
+                        W
+                    </v-btn>
                 </v-flex>
 
                 <v-flex v-if="wideenough()" xs2>
@@ -81,6 +84,9 @@
                     </v-btn>
                     <v-btn fab dark color="indigo" @click="Update('NonStriker',6)">
                         6
+                    </v-btn>
+                    <v-btn fab dark color="indigo" @click="Out('NonStriker')">
+                        W
                     </v-btn>
                 </v-flex>
 
@@ -243,20 +249,30 @@ export default {
             maximumOvers: 20,
             targetLabel: "Projected",
             targetLabelAbbr: "P",
-            data: null,
-            mqtt_connection: {
-                host: 'ws://' + location.hostname,
-                port: 9001,
-                connectTimeout: 4000,
-                reconnectPeriod: 4000,
-                clientId:'vue-scoreboard-' + Math.random().toString(16).substr(2, 8),
-                username:'onfield',
-                password:'onfield'
-            }
+            data: null
         }
     },
     mqtt: {
+    },
+    mounted: function() {
+        this.$mqtt.on('message', (topic, message) => {
+            const score = JSON.parse(message);
 
+            if (score.Source == this.$mqtt.options.clientId) return;
+            if (topic != '/onfield/scoreboard') return;
+
+            this.$store.commit('setTotal', score.Total);
+            this.$store.commit('setWickets', score.Wickets);
+            this.$store.commit('setOvers', score.Overs);
+            this.$store.commit('setExtras', score.Extras);
+            this.$store.commit('setTarget', score.Target);
+            this.$store.commit('setStriker', score.Striker);
+            this.$store.commit('setNonStriker', score.NonStriker);                 
+        })
+
+        this.$nextTick(function() {
+            this.$mqtt.subscribe("/onfield/scoreboard");   
+        })
     },
     methods: {
         wideenough() {
@@ -271,7 +287,7 @@ export default {
         Refresh() {
             if (this.$mqtt.connected) {
                 var status = {
-                    Source: "OnFieldApplet",
+                    Source: this.$mqtt.options.clientId,
                     MatchID: 42166, 
                     Innings : this.firstInnings ? 1 : 2, 
                     Total: this.$store.state.match.total, 
@@ -347,6 +363,11 @@ export default {
             }
 
             return false
+        },
+        Out(who) {
+            this.$store.commit('set' + who, '0')
+            this.$store.commit('Wickets', 1)
+            this.Refresh()
         },
         Update(field, n) {
             this.$store.commit(field, n)
