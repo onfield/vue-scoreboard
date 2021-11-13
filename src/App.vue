@@ -183,17 +183,33 @@
                     <v-subheader class="display-1">{{status}}</v-subheader>
                 </v-flex>
 
-                <v-flex xs4>
-                    <v-btn color="green" @click="Refresh()">Refresh</v-btn>
+                <v-flex xs2>
+                    <v-btn color="green" @click="Refresh(true)">Refresh</v-btn>
+                </v-flex>
+
+                <v-flex xs2>
+                    <v-switch v-model="firstInnings" label="1st Innings" @change="changedInnings"></v-switch>
+                </v-flex>
+
+                <v-flex v-if="this.undoStack.length > 0" xs4>
+                    <v-btn color="red" @click="Reset()">Reset</v-btn>
+                    <v-btn color="blue" @click="Undo()">Undo</v-btn>
+                </v-flex>
+                <v-flex v-else xs4>
                     <v-btn color="red" @click="Reset()">Reset</v-btn>
                 </v-flex>
 
                 <v-flex xs4>
-                    <v-switch v-model="firstInnings" label="1st Innings" @change="changedInnings"></v-switch>
+                    <v-select outline v-model="maximumOvers" :items="overs_items" label="Match Type" @change="changedOvers"></v-select>
                 </v-flex>
 
                 <v-flex xs4>
-                    <v-select outline v-model="maximumOvers" :items="overs_items" label="Match Type" @change="changedOvers"></v-select>
+                    <v-slider v-model="brightness" max="225" min="75" step="5" label="Brightness" color="red green" thumb-label="always" ticks @change="changeBrightness">
+
+                    </v-slider>
+                </v-flex>
+                <v-flex xs8>
+                    
                 </v-flex>
             </v-layout>
         </v-container>
@@ -214,6 +230,7 @@ export default {
             status: "Initialized",
             firstInnings: true,
             light: true,
+            brightness: 225,
             overs_items: [{
                     text: "T20",
                     value: 20
@@ -249,7 +266,8 @@ export default {
             maximumOvers: 20,
             targetLabel: "Projected",
             targetLabelAbbr: "P",
-            data: null
+            data: null,
+            undoStack: []
         }
     },
     mqtt: {
@@ -284,37 +302,35 @@ export default {
         xs5() {
             return this.$vssWidth > 768 ? "xs5" : "xs8"
         },
-        Refresh() {
-            if (this.$mqtt.connected) {
-                var status = {
-                    Source: this.$mqtt.options.clientId,
-                    MatchID: 42166, 
-                    Innings : this.firstInnings ? 1 : 2, 
-                    Total: this.$store.state.match.total, 
-                    Wickets: this.$store.state.match.wickets,
-                    Overs: this.$store.state.match.overs, 
-                    Extras: this.$store.state.match.extras, 
-                    Target: this.$store.state.match.target,
-                    Projected: this.$store.state.match.target,
-                    Striker:  this.$store.state.match.striker,
-                    NonStriker:  this.$store.state.match.nonstriker,
-                    DLS: 0, 
-                    LastMan: 0, 
-                    LastWicket: 0
-                }
+        Refresh(force) {
+            var status = {
+                Force: (typeof force !== 'undefined') ?  force : false,
+                Source: this.$mqtt.options.clientId,
+                MatchID: 42166, 
+                Innings : this.firstInnings ? 1 : 2, 
+                Total: this.$store.state.match.total, 
+                Wickets: this.$store.state.match.wickets,
+                Overs: this.$store.state.match.overs, 
+                Extras: this.$store.state.match.extras, 
+                Target: this.$store.state.match.target,
+                Projected: this.$store.state.match.target,
+                Striker:  this.$store.state.match.striker,
+                NonStriker:  this.$store.state.match.nonstriker,
+                DLS: 0, 
+                LastMan: 0, 
+                LastWicket: 0
+            }
 
+            var vm = this
+
+            if (this.$mqtt.connected) {
                 this.$mqtt.publish("/onfield/scoreboard", JSON.stringify(status))
+                vm.status = "OK"
+                vm.data = ""
             } else {
                 var url = "http://" + location.hostname + ":8380/cgi/live-basic.cgi"
-                // Other Info = MatchID:Inning:Total:Wickets:Overs:Extras:Target/Projected:D/L:LastMan:LastWicket
-                var info = "42166:1:" + this.$store.state.match.total + ":" + this.$store.state.match.wickets + ":" + this.$store.state.match.overs + ":" +
-                    this.$store.state.match.extras + ":" + this.$store.state.match.target + ":0:0:0"
 
-                url = url + "?o=" + info
-
-                var vm = this
-
-                this.axios.get(url)
+                this.axios.post(url, status)
                     .then(response => {
                         vm.status = "OK"
                         vm.data = response.data
@@ -322,6 +338,37 @@ export default {
                     .catch(e => {
                         vm.status = e.message
                     })
+            }
+        },
+        Push() {
+            var s = {
+                Innings : this.firstInnings ? 1 : 2, 
+                Total: this.$store.state.match.total, 
+                Wickets: this.$store.state.match.wickets,
+                Overs: this.$store.state.match.overs, 
+                Extras: this.$store.state.match.extras, 
+                Target: this.$store.state.match.target,
+                Projected: this.$store.state.match.target,
+                Striker:  this.$store.state.match.striker,
+                NonStriker:  this.$store.state.match.nonstriker
+            }
+
+            if (this.undoStack.push(s) > 100) {
+                this.undoStack.shift()
+            }
+        },
+        Undo() {
+            var score = this.undoStack.pop()
+
+            if (score) {
+                this.firstInnings = score.Innings == 1;
+                this.$store.commit('setTotal', score.Total);
+                this.$store.commit('setWickets', score.Wickets);
+                this.$store.commit('setOvers', score.Overs);
+                this.$store.commit('setExtras', score.Extras);
+                this.$store.commit('setTarget', score.Target);
+                this.$store.commit('setStriker', score.Striker);
+                this.$store.commit('setNonStriker', score.NonStriker);                 
             }
         },
         Light() {
@@ -344,6 +391,7 @@ export default {
             }
         },
         Reset() {
+            this.Push()
             this.$store.commit('setTotal', '0')
             this.$store.commit('setWickets', '0')
             this.$store.commit('setOvers', '0')
@@ -365,11 +413,13 @@ export default {
             return false
         },
         Out(who) {
+            this.Push()
             this.$store.commit('set' + who, '0')
             this.$store.commit('Wickets', 1)
             this.Refresh()
         },
         Update(field, n) {
+            this.Push()
             this.$store.commit(field, n)
             this.CalculateProjected(field)
             this.Refresh()
@@ -378,6 +428,19 @@ export default {
             if (this.CalculateProjected('Overs')) {
                 this.Refresh()
             }
+        },
+        changeBrightness(value) {
+            var url = "http://" + location.hostname + ":8380/cmd/brightness/" + this.brightness
+            var vm = this
+
+            this.axios.get(url)
+                .then(response => {
+                    vm.status = "OK"
+                    vm.data = response.data
+                })
+                .catch(e => {
+                    vm.status = e.message
+                })
         },
         changedInnings(value) {
             if (value) {
@@ -390,6 +453,7 @@ export default {
                 this.targetLabel = 'Target'
                 this.targetLabelAbbr = 'T'
 
+                this.Push()
                 this.$store.commit('setTarget', n + '')
                 this.$store.commit('setTotal', '0')
                 this.$store.commit('setWickets', '0')
