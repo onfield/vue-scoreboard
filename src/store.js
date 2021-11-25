@@ -12,7 +12,9 @@ export default new Vuex.Store({
       extras: 0,
       target: 0,
       striker: 0,
-      nonstriker: 0
+      nonstriker: 0,
+      strikerName: "",
+      nonstrikerName: ""
     }
   },
   mutations: {
@@ -98,6 +100,9 @@ export default new Vuex.Store({
         state.match.striker = x;
       }
     },
+    setStrikerName(state, n) {
+      state.match.strikerName = n
+    },
     NonStriker(state, n) {
       var x = state.match.nonstriker + n;
       if (x >= 0 && x < 1000) {
@@ -114,6 +119,9 @@ export default new Vuex.Store({
       if (x >= 0) {
         state.match.nonstriker = x;
       }
+    },
+    setNonStrikerName(state, n) {
+      state.match.nonstrikerName = n
     }
   },
   actions: {

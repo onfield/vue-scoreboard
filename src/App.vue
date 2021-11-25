@@ -35,7 +35,7 @@
                 </v-flex>
 
                 <v-flex v-if="wideenough()" xs2>
-                    <v-subheader class="display-1">Batsman I</v-subheader>
+                    <v-text-field class="ma-0 pa-0" v-model="b1Name" label="Batsman I Name" outline></v-text-field>
                 </v-flex>
                 <v-flex v-else xs2>
                     <v-subheader class="display-1">B1</v-subheader>
@@ -63,7 +63,7 @@
                 </v-flex>
 
                 <v-flex v-if="wideenough()" xs2>
-                    <v-subheader class="display-1">Batsman II</v-subheader>
+                    <v-text-field class="ma-0 pa-0" v-model="b2Name" label="Batsman II Name" outline></v-text-field>
                 </v-flex>
                 <v-flex v-else xs2>
                     <v-subheader class="display-1">B2</v-subheader>
@@ -286,6 +286,8 @@ export default {
             this.$store.commit('setTarget', score.Target);
             this.$store.commit('setStriker', score.Striker);
             this.$store.commit('setNonStriker', score.NonStriker);                 
+            this.$store.commit('setStrikerName', score.StrikerName);
+            this.$store.commit('setNonStrikerName', score.NonStrikerName);                 
         })
 
         this.$nextTick(function() {
@@ -316,6 +318,8 @@ export default {
                 Projected: this.$store.state.match.target,
                 Striker:  this.$store.state.match.striker,
                 NonStriker:  this.$store.state.match.nonstriker,
+                StrikerName:  this.$store.state.match.strikerName,
+                NonStrikerName:  this.$store.state.match.nonstrikerName,
                 DLS: 0, 
                 LastMan: 0, 
                 LastWicket: 0
@@ -350,7 +354,9 @@ export default {
                 Target: this.$store.state.match.target,
                 Projected: this.$store.state.match.target,
                 Striker:  this.$store.state.match.striker,
-                NonStriker:  this.$store.state.match.nonstriker
+                NonStriker:  this.$store.state.match.nonstriker,
+                StrikerName:  this.$store.state.match.strikerName,
+                NonStrikerName:  this.$store.state.match.nonstrikerName
             }
 
             if (this.undoStack.push(s) > 100) {
@@ -369,6 +375,8 @@ export default {
                 this.$store.commit('setTarget', score.Target);
                 this.$store.commit('setStriker', score.Striker);
                 this.$store.commit('setNonStriker', score.NonStriker);                 
+                this.$store.commit('setStrikerName', score.StrikerName);
+                this.$store.commit('setNonStrikerName', score.NonStrikerName);                 
             }
         },
         Light() {
@@ -399,6 +407,8 @@ export default {
             this.$store.commit('setTarget', '0')
             this.$store.commit('setStriker', '0')
             this.$store.commit('setNonStriker', '0')
+            this.$store.commit('setStrikerName', 'Batsman #01')
+            this.$store.commit('setNonStrikerName', 'Batsman #02')
         },
         CalculateProjected(field) {
             if (this.firstInnings && (field == 'Total' || field == 'Extras' || field == 'Overs')) {
@@ -416,6 +426,7 @@ export default {
             this.Push()
             this.$store.commit('set' + who, '0')
             this.$store.commit('Wickets', 1)
+            this.$store.commit('set' + who + "Name", 'Batsman #' + this.$store.state.match.wickets)
             this.Refresh()
         },
         Update(field, n) {
@@ -429,7 +440,7 @@ export default {
                 this.Refresh()
             }
         },
-        changeBrightness(value) {
+        changeBrightness(/*value*/) {
             var url = "http://" + location.hostname + ":8380/cmd/brightness/" + this.brightness
             var vm = this
 
@@ -461,6 +472,8 @@ export default {
                 this.$store.commit('setExtras', '0')
                 this.$store.commit('setStriker', '0')
                 this.$store.commit('setNonStriker', '0')
+                this.$store.commit('setStrikerName', 'Batsman #01')
+                this.$store.commit('setNonStrikerName', 'Batsman #02')
             }
 
             this.Refresh()
@@ -521,6 +534,22 @@ export default {
             },
             set(value) {
                 this.$store.commit('setNonStriker', value)
+            }
+        },
+        b1Name: {
+            get() {
+                return this.$store.state.match.strikerName
+            },
+            set(value) {
+                this.$store.commit('setStrikerName', value)
+            }
+        },
+        b2Name: {
+            get() {
+                return this.$store.state.match.nonstrikerName
+            },
+            set(value) {
+                this.$store.commit('setNonStrikerName', value)
             }
         }
     }
