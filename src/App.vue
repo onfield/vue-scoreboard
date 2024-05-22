@@ -230,7 +230,7 @@ export default {
             status: "Initialized",
             firstInnings: true,
             light: true,
-            brightness: 225,
+            brightness: 175,
             overs_items: [{
                     text: "T20",
                     value: 20
@@ -407,8 +407,8 @@ export default {
             this.$store.commit('setTarget', '0')
             this.$store.commit('setStriker', '0')
             this.$store.commit('setNonStriker', '0')
-            this.$store.commit('setStrikerName', 'Batsman #01')
-            this.$store.commit('setNonStrikerName', 'Batsman #02')
+            this.$store.commit('setStrikerName', '#01')
+            this.$store.commit('setNonStrikerName', '#02')
         },
         CalculateProjected(field) {
             if (this.firstInnings && (field == 'Total' || field == 'Extras' || field == 'Overs')) {
@@ -472,8 +472,8 @@ export default {
                 this.$store.commit('setExtras', '0')
                 this.$store.commit('setStriker', '0')
                 this.$store.commit('setNonStriker', '0')
-                this.$store.commit('setStrikerName', 'Batsman #01')
-                this.$store.commit('setNonStrikerName', 'Batsman #02')
+                this.$store.commit('setStrikerName', '#01')
+                this.$store.commit('setNonStrikerName', '#02')
             }
 
             this.Refresh()
