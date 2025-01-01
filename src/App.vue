@@ -27,10 +27,10 @@
                         <v-icon dark>remove</v-icon>
                     </v-btn>
                     <v-btn fab dark color="blue" @click="Update('Total',4)">
-                        4
+                        +4
                     </v-btn>
                     <v-btn fab dark color="indigo" @click="Update('Total',6)">
-                        6
+                        +6
                     </v-btn>
                 </v-flex>
 
@@ -52,10 +52,10 @@
                         <v-icon dark>remove</v-icon>
                     </v-btn>
                     <v-btn fab dark color="blue" @click="Update('Striker',4)">
-                        4
+                        +4
                     </v-btn>
                     <v-btn fab dark color="indigo" @click="Update('Striker',6)">
-                        6
+                        +6
                     </v-btn>
                     <v-btn fab dark color="indigo" @click="Out('Striker')">
                         W
@@ -80,10 +80,10 @@
                         <v-icon dark>remove</v-icon>
                     </v-btn>
                     <v-btn fab dark color="blue" @click="Update('NonStriker',4)">
-                        4
+                        +4
                     </v-btn>
                     <v-btn fab dark color="indigo" @click="Update('NonStriker',6)">
-                        6
+                        +6
                     </v-btn>
                     <v-btn fab dark color="indigo" @click="Out('NonStriker')">
                         W
@@ -146,7 +146,7 @@
                         <v-icon dark>remove</v-icon>
                     </v-btn>
                     <v-btn fab dark color="orange" @click="Update('Extras',5)">
-                        5
+                        +5
                     </v-btn>
                     <v-btn fab dark color="violet" @click="Light()" :disabled="!light">
                         <v-icon dark>highlight</v-icon>
@@ -227,6 +227,8 @@ export default {
     mixins: [VueScreenSize.VueScreenSizeMixin],
     data() {
         return {
+            identity: {id: 'windows'},
+            port: '',
             status: "Initialized",
             firstInnings: true,
             light: true,
@@ -273,26 +275,33 @@ export default {
     mqtt: {
     },
     mounted: function() {
-        this.$mqtt.on('message', (topic, message) => {
-            const score = JSON.parse(message);
+        var port = this.port
+        if (this.Identify() != port) {
+            this.Identify() // Try the other port...
+        }
 
-            if (score.Source == this.$mqtt.options.clientId) return;
-            if (topic != '/onfield/scoreboard') return;
+        if (this.port != '') {
+            this.$mqtt.on('message', (topic, message) => {
+                const score = JSON.parse(message);
 
-            this.$store.commit('setTotal', score.Total);
-            this.$store.commit('setWickets', score.Wickets);
-            this.$store.commit('setOvers', score.Overs);
-            this.$store.commit('setExtras', score.Extras);
-            this.$store.commit('setTarget', score.Target);
-            this.$store.commit('setStriker', score.Striker);
-            this.$store.commit('setNonStriker', score.NonStriker);                 
-            this.$store.commit('setStrikerName', score.StrikerName);
-            this.$store.commit('setNonStrikerName', score.NonStrikerName);                 
-        })
+                if (score.Source == this.$mqtt.options.clientId) return;
+                if (topic != '/onfield/scoreboard') return;
 
-        this.$nextTick(function() {
-            this.$mqtt.subscribe("/onfield/scoreboard");   
-        })
+                this.$store.commit('setTotal', score.Total);
+                this.$store.commit('setWickets', score.Wickets);
+                this.$store.commit('setOvers', score.Overs);
+                this.$store.commit('setExtras', score.Extras);
+                this.$store.commit('setTarget', score.Target);
+                this.$store.commit('setStriker', score.Striker);
+                this.$store.commit('setNonStriker', score.NonStriker);                 
+                this.$store.commit('setStrikerName', score.StrikerName);
+                this.$store.commit('setNonStrikerName', score.NonStrikerName);                 
+            })
+
+            this.$nextTick(function() {
+                this.$mqtt.subscribe("/onfield/scoreboard");   
+            })
+        }
     },
     methods: {
         wideenough() {
@@ -303,6 +312,23 @@ export default {
         },
         xs5() {
             return this.$vssWidth > 768 ? "xs5" : "xs8"
+        },
+        Identify() {
+            var vm = this
+            var url = "http://" + location.hostname + vm.port + "/healthcheck"
+
+            this.axios.get(url)
+                .then(response => {
+                    vm.status = "OK"
+                    vm.identity = response.data
+                })
+                .catch(e => {
+                    vm.port = ':8380'
+                    vm.identity = {id:'go'}
+                    vm.status = e.message
+                })
+
+            return vm.port
         },
         Refresh(force) {
             var status = {
@@ -332,9 +358,9 @@ export default {
                 vm.status = "OK"
                 vm.data = ""
             } else {
-                var url = "http://" + location.hostname + ":8380/cgi/live-basic.cgi"
+                var url = "http://" + location.hostname + vm.port + "/api/v1/board"
 
-                this.axios.post(url, status)
+                this.axios.put(url, status)
                     .then(response => {
                         vm.status = "OK"
                         vm.data = response.data
@@ -380,8 +406,8 @@ export default {
             }
         },
         Light() {
-            var url = "http://" + location.hostname + ":8380/cgi/light.cgi?on=true"
             var vm = this
+            var url = "http://" + location.hostname + vm.port + "/api/v1/light?on=true"
 
             if (this.light) {
                 this.light = false;
@@ -441,8 +467,8 @@ export default {
             }
         },
         changeBrightness(/*value*/) {
-            var url = "http://" + location.hostname + ":8380/cmd/brightness/" + this.brightness
             var vm = this
+            var url = "http://" + location.hostname + vm.port + "/api/v1/brightness/" + this.brightness
 
             this.axios.get(url)
                 .then(response => {
